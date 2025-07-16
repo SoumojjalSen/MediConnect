@@ -43,10 +43,10 @@ const ChatNavbar = () => {
               Hospitals
             </Link>
             <Link href="/medicineDetails" onClick={closeMenu} className="text-blue-600">
-              Search Medicine
+              Medicines
             </Link>
             <Link href="/nutritionChart" onClick={closeMenu} className="text-blue-600">
-              Nutrition Chart
+              Diet Chart
             </Link>
             <div className="flex justify-center gap-4">
               <Link

@@ -102,7 +102,7 @@ export default function Dashboard({ data, type }) {
                 </p>
                 <p className='text-xl text-cyan-300'>
                   <strong className='text-cyan-400'>Diet Type:</strong>{' '}
-                  {data?.diet}
+                  {data?.diet === 'non-veg' ? 'Non Vegetarian' : data?.diet === 'veg' ? 'Vegetarian' : data?.diet}
                 </p>
               </div>
             </div>

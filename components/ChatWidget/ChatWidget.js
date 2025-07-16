@@ -88,15 +88,13 @@ export default function ChatModal({ isOpen, onClose }) {
                   remarkPlugins={[remarkGfm]}
                   components={{
                     a: ({ href, children }) => (
-                      <Link href={href} scroll={true} passHref legacyBehavior>
-                        <button
-                          className='text-blue-200 hover:underline'
-                          onClick={(e) => {
-                            e.stopPropagation(); // prevent modal issues
-                          }}
-                        >
-                          {children}
-                        </button>
+                      <Link
+                        href={href}
+                        scroll={true}
+                        className='text-blue-200 hover:underline'
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {children}
                       </Link>
                     ),
                   }}

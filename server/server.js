@@ -1,6 +1,7 @@
-require('dotenv').config({ path: '.env.local' }); // Load environment variables from .env.local
-// The line require('dotenv').config({ path: '.env.local' }) only loads variables from a file if it exists.
-// In production, if there’s no .env.local file, nothing happens—Node.js will use the environment variables set by the platform.
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: '.env.local' }); // Load environment variables from .env.local only in local/dev
+}
+// In production, environment variables should be set by the platform/cloud service.
 
 const express = require('express');
 const http = require('http');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import symptomsData from '../../data/SymptomsJSON.json';
 import axios from 'axios';
 import Navbar from '../../components/Navbar/Navbar';
@@ -9,13 +9,17 @@ import Footer from '@/components/Footer/Footer';
 import PageLoader from '@/components/PageLoader/PageLoader';
 import DiseasePieChart from '@/components/DiseasePieChart';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
 
 export default function SymptomCheckbox() {
   const [checkedSymptoms, setCheckedSymptoms] = useState({});
   const [predictedDisease, setPredictedDisease] = useState(null);
   const [startupLoading, setStartupLoading] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(25);
+  const [countdown, setCountdown] = useState(30);
+
+  const symptomRefs = useRef({});
 
   useEffect(() => {
     setStartupLoading(true);
@@ -66,7 +70,7 @@ export default function SymptomCheckbox() {
         symptoms: selectedSymptomsArray,
       };
 
-      console.log('Symptoms Array:', symptomsArray);
+      // console.log('Symptoms Array:', symptomsArray);
 
       const response = await axios.post(
         process.env.NEXT_PUBLIC_DISEASE_PREDICTION_API_URL + '/predict',
@@ -79,7 +83,8 @@ export default function SymptomCheckbox() {
       const singlePrediction = response?.data?.Disease;
 
       setPredictedDisease(
-        topPredictions ?? (singlePrediction ? [{ Disease: singlePrediction }] : null)
+        topPredictions ??
+          (singlePrediction ? [{ Disease: singlePrediction }] : null)
       );
     } catch (error) {
       console.error('Network error:', error);
@@ -88,11 +93,44 @@ export default function SymptomCheckbox() {
     scrollToTop();
     setLoading(false);
   };
-  
+
   const handleReset = () => {
     setCheckedSymptoms({});
     setPredictedDisease(null); // Also clear the prediction result
     scrollToTop();
+  };
+
+  // Flatten all symptoms for search
+  const allSymptoms = Object.entries(symptomsData).flatMap(([category, data]) =>
+    data.symptoms.map((symptom) => ({
+      label: Object.keys(symptom)[0],
+      value: Object.values(symptom)[0],
+      category,
+    }))
+  );
+
+  // Scroll to symptom and select it, and clear prediction
+  const handleSymptomSelect = (event, value) => {
+    if (value) {
+      // Also check the symptom
+      setCheckedSymptoms((prevState) => ({
+        ...prevState,
+        [value.category]: {
+          ...(prevState[value.category] || {}),
+          [value.value]: true,
+        },
+      }));
+      setPredictedDisease(null); // Clear the graph
+      // Scroll after DOM/layout update
+      setTimeout(() => {
+        if (symptomRefs.current[value.value]) {
+          symptomRefs.current[value.value].scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }
+      }, 0);
+    }
   };
 
   return (
@@ -133,8 +171,57 @@ export default function SymptomCheckbox() {
             </div>
           </div>
         ) : (
-          predictedDisease && <DiseasePieChart data={predictedDisease} /> 
+          predictedDisease && <DiseasePieChart data={predictedDisease} />
         )}
+        {/* Search Dropdown */}
+        <div className='w-full flex justify-center mt-8 mb-4'>
+          <div className='w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl px-2'>
+            <div
+              className='w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl px-2'
+              style={{
+                background: 'white',
+                borderRadius: 12,
+                boxShadow: '0 2px 8px #0001',
+                padding: 12,
+              }}
+            >
+              <Autocomplete
+                options={allSymptoms}
+                groupBy={(option) => option.category}
+                getOptionLabel={(option) => option.label}
+                onChange={handleSymptomSelect}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label='Search symptoms'
+                    variant='outlined'
+                    fullWidth
+                  />
+                )}
+                sx={{
+                  '& .MuiInputBase-root': {
+                    background: 'white',
+                    borderRadius: 2,
+                  },
+                }}
+                PaperComponent={(props) => (
+                  <div
+                    style={{
+                      zIndex: 1300,
+                      position: 'absolute',
+                      background: 'white',
+                      boxShadow: '0 2px 8px #0002',
+                      borderRadius: 8,
+                      color: 'black',
+                      opacity: 1, // ensure not transparent
+                    }}
+                    {...props}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </div>
         {Object.entries(symptomsData).map(([category, data]) => (
           <div
             className='lg:w-[80vw] w-[90vw] hover:border-blue-500 hover:border-2 mt-8 px-4 py-3 bg-blue-300/20 backdrop-blur-xl rounded-2xl'
@@ -148,16 +235,23 @@ export default function SymptomCheckbox() {
               </div>
               <div className='flex justify-center mt-2'>
                 <div className='flex flex-wrap justify-center w-full'>
+                {/* <div className='flex flex-wrap justify-evenly w-full'> */}
                   {data.symptoms.map((symptom) => (
                     <div
                       key={Object.keys(symptom)[0]}
+                      ref={(el) =>
+                        (symptomRefs.current[Object.values(symptom)[0]] = el)
+                      }
+                      // className='bg-gray-200 flex min-w-max w-40 lg:text-medium rounded-xl px-1 py-1 mx-1 my-1 lg:px-2 lg:py-1 lg:mx-2 lg:my-2 text-black'
                       className='bg-gray-200 flex min-w-max lg:text-medium rounded-xl px-1 py-1 mx-1 my-1 lg:px-2 lg:py-1 lg:mx-2 lg:my-2 text-black'
                     >
                       <Checkbox
                         id={Object.values(symptom)[0]}
                         radius='md'
                         isSelected={
-                          checkedSymptoms[category]?.[Object.values(symptom)[0]] || false
+                          checkedSymptoms[category]?.[
+                            Object.values(symptom)[0]
+                          ] || false
                         }
                         onChange={(e) =>
                           handleCheckboxChange(

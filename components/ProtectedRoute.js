@@ -21,12 +21,18 @@ export default function ProtectedRoute({ children }) {
         const data = await res.json();
         if (!data.valid) {
           Cookies.remove('token');
+          Cookies.remove('user_uid');
+          Cookies.remove('userType');
+
           router.push('/login');
         } else {
           setIsVerifying(false);
         }
       } catch {
         Cookies.remove('token');
+        Cookies.remove('user_uid');
+        Cookies.remove('userType');
+
         router.push('/login');
       }
     };

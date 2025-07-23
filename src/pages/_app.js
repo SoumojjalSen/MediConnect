@@ -1,4 +1,5 @@
 import '../styles/globals.css';
+import { Analytics } from '@vercel/analytics/react';
 import { NextUIProvider } from '@nextui-org/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
@@ -35,7 +36,6 @@ function MyApp({ Component, pageProps }) {
       router.events.off('routeChangeError', handleStop);
     };
   }, [router]);
-
 
   const isChatPage =
     router.pathname === '/chat' ||
@@ -89,6 +89,7 @@ function MyApp({ Component, pageProps }) {
             />
           </>
         )}
+        <Analytics />
       </div>
     </NextUIProvider>
   );

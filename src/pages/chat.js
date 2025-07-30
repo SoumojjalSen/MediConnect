@@ -71,6 +71,13 @@ const Chat = ({ initialList = [] }) => {
   const [message, setMessage] = useState('');
   const [initialUserType, setInitialUserType] = useState(null);
   const [initialUserUid, setInitialUserUid] = useState(null);
+  // Show menu by default on mobile, closed on desktop
+  const [showListMenu, setShowListMenu] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -81,6 +88,10 @@ const Chat = ({ initialList = [] }) => {
     setInitialUserUid(user_uid);
     if (!socket && typeof window !== 'undefined') {
       socket = io(process.env.NEXT_PUBLIC_CHAT_SERVER_URL);
+    }
+    // Open menu by default on mobile
+    if (typeof window !== 'undefined') {
+      setShowListMenu(window.innerWidth < 768);
     }
   }, []);
 
@@ -142,57 +153,106 @@ const Chat = ({ initialList = [] }) => {
       : `${item.firstName} ${item.lastName}`;
 
   return (
-    <div className='flex h-screen w-screen overflow-hidden'>
-      {/* List (Doctors or Patients) */}
-      <div className='w-2/12 flex flex-col gap-2 bg-[#071c3f] text-white p-1 overflow'>
+    <div className='flex h-screen w-screen overflow-hidden relative'>
+      {/* Mobile: Slide-in List Menu */}
+      <div
+        className={`fixed top-0 left-0 z-30 h-full w-8/12 max-w-xs bg-[#071c3f] text-white p-1 flex flex-col gap-2 shadow-lg transition-transform duration-300 ease-in-out
+        ${showListMenu ? 'translate-x-0' : '-translate-x-full'}
+        md:static md:translate-x-0 md:w-2/12 md:max-w-none md:shadow-none md:h-auto md:flex`}
+        style={{ minWidth: '0' }}
+      >
         <div className='flex justify-between items-center px-2 py-3 font-medium text-2xl border-b-1 border-[#334155] min-h-8'>
           <Link
             href='/'
             type='button'
             className='text-white bg-gradient-to-r from-blue-500 to-blue-800 hover:bg-gradient-to-bl focus:ring-1 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 font-medium rounded-lg text-sm px-3 py-2.5 text-center'
+            onClick={() => setShowListMenu(false)}
           >
             {'<'}
           </Link>
           {listTitle}
-        </div>
-        {list.map((item) => (
-          <div
-            key={item.uid}
-            className={`px-4 flex flex-col gap-2 rounded-xl py-3 cursor-pointer border-b border-[#334155] ${
-              selected?.uid === item.uid
-                ? 'bg-[#2563eb] font-bold'
-                : 'bg-transparent font-normal'
-            }`}
-            onClick={() => setSelected(item)}
+          {/* Close button for mobile */}
+          <button
+            className='md:hidden ml-2 text-white text-2xl focus:outline-none px-2 py-1 rounded hover:bg-blue-700'
+            onClick={() => setShowListMenu(false)}
+            aria-label='Close menu'
           >
-            {getDisplayName(item)}
-            {initialUserType !== 'doctor' &&
-              Array.isArray(item.specialization) &&
-              item.specialization.length > 0 && (
-                <div
-                  className={`${
-                    selected?.uid === item.id ? 'font-semibold' : 'font-normal'
-                  } text-xs font-medium text-gray-300`}
-                >
-                  {item.specialization.join(', ')}
-                </div>
-              )}
-          </div>
-        ))}
+            ×
+          </button>
+        </div>
+        <div className='flex-1 overflow-y-auto'>
+          {list.map((item) => (
+            <div
+              key={item.uid}
+              className={`px-4 flex flex-col gap-2 rounded-xl py-3 cursor-pointer border-b border-[#334155] ${
+                selected?.uid === item.uid
+                  ? 'bg-[#2563eb] font-bold'
+                  : 'bg-transparent font-normal'
+              }`}
+              onClick={() => {
+                setSelected(item);
+                setShowListMenu(false); // close menu on select (mobile)
+              }}
+            >
+              {getDisplayName(item)}
+              {initialUserType !== 'doctor' &&
+                Array.isArray(item.specialization) &&
+                item.specialization.length > 0 && (
+                  <div
+                    className={`$ {
+                      selected?.uid === item.id ? 'font-semibold' : 'font-normal'
+                    } text-xs font-medium text-gray-300`}
+                  >
+                    {item.specialization.join(', ')}
+                  </div>
+                )}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Overlay for mobile menu */}
+      {showListMenu && (
+        <div
+          className='fixed inset-0 z-20 bg-white bg-opacity-60 md:hidden backdrop-blur-sm'
+          onClick={() => setShowListMenu(false)}
+        />
+      )}
+
       {/* Chat Window */}
-      <div className='flex flex-col bg-white w-10/12'>
-        <div className='border-b-1 flex justify-between items-center gap-2 p-4 border-[#e5e7eb] font-medium text-xl bg-[#f1f5f9]'>
+      <div className='flex flex-col bg-white w-full md:w-10/12 h-full'>
+        <div className='border-b-1 flex justify-between items-center gap-2 p-4 border-[#e5e7eb] font-medium text-xl bg-[#f1f5f9] relative'>
+          {/* Mobile: Menu button */}
+          <button
+            className='md:hidden mr-2 text-[#2563eb] text-2xl focus:outline-none px-2 py-1 rounded hover:bg-blue-100'
+            onClick={() => setShowListMenu(true)}
+            aria-label='Open menu'
+          >
+            <svg
+              width='28'
+              height='28'
+              fill='none'
+              viewBox='0 0 24 24'
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth='2'
+                d='M4 6h16M4 12h16M4 18h16'
+              />
+            </svg>
+          </button>
           {selected ? (
-            <div className='flex justify-center items-center gap-2'>
-              <div className='font-semibold text-xl'>
+            <div className='flex flex-col md:flex-row md:justify-center md:items-center gap-1 md:gap-2 w-full'>
+              <div className='font-semibold text-lg md:text-xl leading-tight md:leading-normal text-left md:text-center'>
                 {getDisplayName(selected)}
               </div>
               {/* Only show specialization for doctors */}
               {initialUserType !== 'doctor' &&
                 Array.isArray(selected.specialization) &&
                 selected.specialization.length > 0 && (
-                  <div className='text-sm text-gray-500'>
+                  <div className='text-xs md:text-sm text-gray-500 text-left md:text-right md:ml-2 whitespace-normal md:whitespace-nowrap'>
                     {'('}
                     {selected.specialization.join(', ')}
                     {')'}
@@ -205,9 +265,11 @@ const Chat = ({ initialList = [] }) => {
               chat
             </div>
           )}
-          <ChatNavbar className='border border-black' />
+          <div className='hidden md:block'>
+            <ChatNavbar className='border border-black' />
+          </div>
         </div>
-        <div className='flex-1  overflow-y-auto p-3 bg-[#f8fafc]'>
+        <div className='flex-1 overflow-y-auto p-3 bg-[#f8fafc]'>
           {messages.length > 0 ? (
             messages.map((msg, idx) => {
               const isLast = idx === messages.length - 1;
@@ -218,8 +280,8 @@ const Chat = ({ initialList = [] }) => {
 
               // Decide the image based on the sender role
               const imageSrc = isDoctor
-                ? 'https://res.cloudinary.com/dv6bqnxqf/image/upload/v1747493127/nczsnx2iewsmbo8vuv0m.png' // Replace with your doctor logo path
-                : 'https://res.cloudinary.com/dv6bqnxqf/image/upload/v1747493384/f1siona09tbsca88ftlv.png'; // Replace with your patient logo path
+                ? 'https://res.cloudinary.com/dv6bqnxqf/image/upload/v1747493127/nczsnx2iewsmbo8vuv0m.png'
+                : 'https://res.cloudinary.com/dv6bqnxqf/image/upload/v1747493384/f1siona09tbsca88ftlv.png';
 
               return (
                 <div
@@ -242,7 +304,7 @@ const Chat = ({ initialList = [] }) => {
 
                   {/* Message bubble */}
                   <div
-                    className={`px-2 py-2 max-w-[50%] break-words ${
+                    className={`px-2 py-2 max-w-[70vw] md:max-w-[50%] break-words ${
                       isUser
                         ? 'bg-[#2563eb] text-white rounded-l-md rounded-t-md'
                         : 'bg-[#34d76a] text-white rounded-r-md rounded-t-md'
